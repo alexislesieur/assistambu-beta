@@ -39,6 +39,7 @@ export const interventionsApi = {
 export const itemsApi = {
   index:  () => api.get('/items'),
   alerts: () => api.get('/items/alerts'),
+  restock: (id, data) => api.post(`/items/${id}/restock`, data),
 }
 
 export const hospitalsApi = {

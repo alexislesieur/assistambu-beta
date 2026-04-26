@@ -23,7 +23,7 @@ export function useAuth() {
 
     authApi.me()
       .then(data => {
-        if (!['beta', 'admin'].includes(data.role)) {
+        if (!['beta', 'admin', 'superadmin'].includes(data.role)) {
           localStorage.removeItem('token')
           window.location.href = import.meta.env.VITE_AUTH_URL || 'https://auth.assist-ambu.fr/login'
           return
