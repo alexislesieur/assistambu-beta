@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { interventionsApi, hospitalsApi } from '../lib/api'
+import { api, interventionsApi, hospitalsApi } from '../lib/api'
 import ConstantesStep, { CONSTANTES, getConstantStatus } from './ConstantesStep'
 
 const STATUS_COLORS = {
@@ -34,32 +34,31 @@ const DRIVING_OPTIONS = [
 ]
 
 const TOTAL_STEPS = 6
+const STEP_LABELS = ['Catégorie', 'Patient', 'Constantes', 'Gestes', 'Transport', 'Récap']
 
 const IcoCheck = ({ color = '#fff', size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
 
 export default function NouvelleIntervention({ visible, onClose, shiftId, onSuccess }) {
-  const [step, setStep]           = useState(1)
-  const [loading, setLoading]     = useState(false)
-  const [hospitals, setHospitals] = useState([])
+  const [step, setStep]             = useState(1)
+  const [loading, setLoading]       = useState(false)
+  const [hospitals, setHospitals]   = useState([])
   const [categories, setCategories] = useState([])
 
-  const [category, setCategory]     = useState(null)
-  const [gender, setGender]         = useState(null)
-  const [age, setAge]               = useState('')
-  const [constants, setConstants]   = useState({})
-  const [gestures, setGestures]     = useState([])
-  const [driving, setDriving]       = useState('none')
+  const [category, setCategory]       = useState(null)
+  const [gender, setGender]           = useState(null)
+  const [age, setAge]                 = useState('')
+  const [constants, setConstants]     = useState({})
+  const [gestures, setGestures]       = useState([])
+  const [driving, setDriving]         = useState('none')
   const [noTransport, setNoTransport] = useState(false)
-  const [hospitalId, setHospitalId] = useState(null)
+  const [hospitalId, setHospitalId]   = useState(null)
 
   useEffect(() => {
     if (visible) {
-      hospitalsApi.index().then(setHospitals).catch(() => {})
-      import('../lib/api').then(({ api }) =>
-        api.get('/intervention-categories')
-          .then(data => setCategories(data.length > 0 ? data : CATEGORIES_FALLBACK))
-          .catch(() => setCategories(CATEGORIES_FALLBACK))
-      )
+      hospitalsApi.index().catch(() => []).then(setHospitals)
+      api.get('/intervention-categories')
+        .then(data => setCategories(data.length > 0 ? data : CATEGORIES_FALLBACK))
+        .catch(() => setCategories(CATEGORIES_FALLBACK))
     }
   }, [visible])
 
@@ -104,23 +103,27 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
 
   const selectedCat = category
 
-  const STEP_LABELS = ['Catégorie', 'Patient', 'Constantes', 'Gestes', 'Transport', 'Récap']
-
   return (
-    <div style={{ position: 'fixed', top: 56, bottom: 72, left: 0, right: 0, zIndex: 300, background: '#F0F2F5', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans',sans-serif", maxWidth: 480, margin: '0 auto' }}>
+    <div style={{
+      position: 'fixed', top: 56, bottom: 72, left: 0, right: 0,
+      zIndex: 300, background: '#F0F2F5',
+      display: 'flex', flexDirection: 'column',
+      fontFamily: "'DM Sans',sans-serif",
+      maxWidth: 480, margin: '0 auto',
+    }}>
 
       {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #E8ECF0', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <button onClick={handleClose} style={{ background: '#F0F2F5', border: 'none', borderRadius: 8, width: 36, height: 36, cursor: 'pointer', fontSize: 20 }}>×</button>
+      <div style={{ background: '#fff', borderBottom: '1px solid #E8ECF0', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <button onClick={handleClose} style={{ background: '#F0F2F5', border: 'none', borderRadius: 8, width: 34, height: 34, cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: '#0A1E3D' }}>Nouvelle intervention</div>
           <div style={{ fontSize: 10, color: '#8694A7', marginTop: 1 }}>{STEP_LABELS[step - 1]}</div>
         </div>
-        <div style={{ width: 36 }} />
+        <div style={{ width: 34 }} />
       </div>
 
       {/* Progression */}
-      <div style={{ background: '#fff', padding: '8px 20px 12px', borderBottom: '1px solid #E8ECF0' }}>
+      <div style={{ background: '#fff', padding: '8px 20px 10px', borderBottom: '1px solid #E8ECF0' }}>
         <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < step ? '#2E86C1' : '#E8ECF0', transition: 'background 0.3s' }} />
@@ -129,7 +132,7 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
         <div style={{ fontSize: 10, color: '#8694A7', textAlign: 'center' }}>Étape {step} sur {TOTAL_STEPS}</div>
       </div>
 
-      {/* Contenu */}
+      {/* Contenu scrollable */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
 
         {/* ÉTAPE 1 — Catégorie */}
@@ -138,11 +141,14 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
             <div style={{ fontSize: 17, fontWeight: 800, color: '#0A1E3D', marginBottom: 4 }}>Type d'intervention</div>
             <div style={{ fontSize: 12, color: '#8694A7', marginBottom: 16 }}>Sélectionnez la catégorie principale</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {categories.map(cat => (
-                <button key={cat.id || cat.name} onClick={() => setCategory(cat)} style={{ padding: '14px 12px', borderRadius: 12, border: `1.5px solid ${category?.id === cat.id || category?.name === cat.name ? cat.color : '#E8ECF0'}`, background: category?.id === cat.id || category?.name === cat.name ? cat.bg : '#fff', color: category?.id === cat.id || category?.name === cat.name ? cat.color : '#0A1E3D', fontWeight: 700, fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: "'DM Sans',sans-serif" }}>
-                  {cat.label || cat.name}
-                </button>
-              ))}
+              {categories.map(cat => {
+                const isActive = category?.id === cat.id || category?.name === cat.name
+                return (
+                  <button key={cat.id || cat.name} onClick={() => setCategory(cat)} style={{ padding: '14px 12px', borderRadius: 12, border: `1.5px solid ${isActive ? cat.color : '#E8ECF0'}`, background: isActive ? cat.bg : '#fff', color: isActive ? cat.color : '#0A1E3D', fontWeight: 700, fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: "'DM Sans',sans-serif" }}>
+                    {cat.label || cat.name}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
@@ -161,7 +167,7 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
               ))}
             </div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Âge</div>
-            <input type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="Ex: 45" style={{ width: '100%', height: 48, border: '1.5px solid #D1D8E0', borderRadius: 10, padding: '0 14px', fontSize: 16, boxSizing: 'border-box', outline: 'none', fontFamily: "'DM Sans',sans-serif" }} />
+            <input type="number" inputMode="numeric" value={age} onChange={e => setAge(e.target.value)} placeholder="Ex: 45" style={{ width: '100%', height: 48, border: '1.5px solid #D1D8E0', borderRadius: 10, padding: '0 14px', fontSize: 16, boxSizing: 'border-box', outline: 'none', fontFamily: "'DM Sans',sans-serif" }} />
           </div>
         )}
 
@@ -181,9 +187,9 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
             <div style={{ fontSize: 12, color: '#8694A7', marginBottom: 16 }}>Sélectionnez tous les gestes effectués</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {GESTES.map(g => {
-                const selected = gestures.includes(g)
+                const sel = gestures.includes(g)
                 return (
-                  <button key={g} onClick={() => toggleGeste(g)} style={{ padding: '8px 12px', borderRadius: 20, border: `1px solid ${selected ? '#2E86C1' : '#E8ECF0'}`, background: selected ? '#E3F0FA' : '#fff', color: selected ? '#2E86C1' : '#4A5568', fontWeight: selected ? 700 : 500, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                  <button key={g} onClick={() => toggleGeste(g)} style={{ padding: '8px 12px', borderRadius: 20, border: `1px solid ${sel ? '#2E86C1' : '#E8ECF0'}`, background: sel ? '#E3F0FA' : '#fff', color: sel ? '#2E86C1' : '#4A5568', fontWeight: sel ? 700 : 500, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
                     {g}
                   </button>
                 )
@@ -253,8 +259,8 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
               ))}
             </div>
 
-            {/* Constantes dans le récap */}
-            {Object.keys(constants).filter(k => constants[k] !== '').length > 0 && (
+            {/* Constantes récap */}
+            {Object.keys(constants).filter(k => constants[k] !== '' && constants[k] !== null && constants[k] !== undefined).length > 0 && (
               <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E8ECF0', overflow: 'hidden', marginBottom: 12 }}>
                 <div style={{ padding: '10px 14px', background: '#F7F8FA', borderBottom: '1px solid #E8ECF0' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: '#8694A7', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Constantes vitales</span>
@@ -264,7 +270,7 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
                   .map(([key, val], i) => {
                     const constante = CONSTANTES.find(c => c.id === key)
                     const status    = constante ? getConstantStatus(constante, val) : null
-                    const colors    = status ? STATUS_COLORS[status.status] : null
+                    const colors    = status ? STATUS_COLORS[status] : null
                     return (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', borderTop: i > 0 ? '1px solid #F0F2F5' : 'none', background: colors ? colors.bg : 'transparent' }}>
                         <span style={{ fontSize: 12, color: colors ? colors.color : '#8694A7', fontWeight: 500 }}>
@@ -284,7 +290,7 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
       </div>
 
       {/* Footer */}
-      <div style={{ background: '#fff', borderTop: '1px solid #E8ECF0', padding: 14, paddingBottom: 'calc(14px + env(safe-area-inset-bottom))', display: 'flex', gap: 10 }}>
+      <div style={{ background: '#fff', borderTop: '1px solid #E8ECF0', padding: 14, display: 'flex', gap: 10 }}>
         {step > 1 && (
           <button onClick={() => setStep(s => s - 1)} style={{ padding: '13px 16px', borderRadius: 12, border: 'none', background: '#F0F2F5', color: '#0A1E3D', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
             ← Retour
