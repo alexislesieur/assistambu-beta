@@ -9,14 +9,14 @@ const STATUS_COLORS = {
 }
 
 const CATEGORIES_FALLBACK = [
-  { id: 'cardio',    label: 'Cardio',      color: '#C0392B', bg: '#FEF2F2' },
-  { id: 'respi',     label: 'Respi',       color: '#2E86C1', bg: '#E3F0FA' },
-  { id: 'trauma',    label: 'Trauma',      color: '#D4860B', bg: '#FBF1E0' },
-  { id: 'neuro',     label: 'Neuro',       color: '#8E44AD', bg: '#F0E6F6' },
-  { id: 'pedia',     label: 'Pédia',       color: '#1D8348', bg: '#E6F2EC' },
-  { id: 'obstétrie', label: 'Obstétrie',   color: '#E91E8C', bg: '#FCE4F5' },
-  { id: 'psych',     label: 'Psychiatrie', color: '#5D6D7E', bg: '#EAF0F6' },
-  { id: 'general',   label: 'Général',     color: '#4A5568', bg: '#F0F2F5' },
+  { name: 'Cardio',      color: '#C0392B', bg: '#FEF2F2' },
+  { name: 'Respi',       color: '#2E86C1', bg: '#E3F0FA' },
+  { name: 'Trauma',      color: '#D4860B', bg: '#FBF1E0' },
+  { name: 'Neuro',       color: '#8E44AD', bg: '#F0E6F6' },
+  { name: 'Pédia',       color: '#1D8348', bg: '#E6F2EC' },
+  { name: 'Obstétrie',   color: '#E91E8C', bg: '#FCE4F5' },
+  { name: 'Psychiatrie', color: '#5D6D7E', bg: '#EAF0F6' },
+  { name: 'Général',     color: '#4A5568', bg: '#F0F2F5' },
 ]
 
 const GESTES = [
@@ -77,6 +77,11 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
     return true
   }
 
+  const getCategoryName = () => {
+    if (!category) return ''
+    return category.name || category.label || ''
+  }
+
   const handleSubmit = async () => {
     setLoading(true)
     try {
@@ -85,7 +90,7 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
       )
       await interventionsApi.store({
         shift_id:       shiftId,
-        category:       category.id || category.name,
+        category:       getCategoryName(),
         patient_gender: gender,
         patient_age:    parseInt(age),
         constants:      Object.keys(filteredConstants).length > 0 ? filteredConstants : null,
@@ -95,13 +100,14 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
         hospital_id:    hospitalId,
       })
       reset(); onSuccess(); onClose()
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
+    } catch (e) {
+      console.error('Erreur intervention:', JSON.stringify(e.errors))
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (!visible) return null
-
-  const selectedCat = category
 
   return (
     <div style={{
@@ -142,10 +148,11 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
             <div style={{ fontSize: 12, color: '#8694A7', marginBottom: 16 }}>Sélectionnez la catégorie principale</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {categories.map(cat => {
-                const isActive = category?.id === cat.id || category?.name === cat.name
+                const catName  = cat.name || cat.label
+                const isActive = category && (category.name === catName || category.label === catName)
                 return (
-                  <button key={cat.id || cat.name} onClick={() => setCategory(cat)} style={{ padding: '14px 12px', borderRadius: 12, border: `1.5px solid ${isActive ? cat.color : '#E8ECF0'}`, background: isActive ? cat.bg : '#fff', color: isActive ? cat.color : '#0A1E3D', fontWeight: 700, fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: "'DM Sans',sans-serif" }}>
-                    {cat.label || cat.name}
+                  <button key={catName} onClick={() => setCategory(cat)} style={{ padding: '14px 12px', borderRadius: 12, border: `1.5px solid ${isActive ? cat.color : '#E8ECF0'}`, background: isActive ? cat.bg : '#fff', color: isActive ? cat.color : '#0A1E3D', fontWeight: 700, fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: "'DM Sans',sans-serif" }}>
+                    {catName}
                   </button>
                 )
               })}
@@ -243,8 +250,8 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
             <div style={{ fontSize: 12, color: '#8694A7', marginBottom: 16 }}>Vérifiez les informations avant de valider</div>
 
             <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #E8ECF0', marginBottom: 12 }}>
-              <div style={{ padding: 14, background: selectedCat?.bg || '#F0F2F5' }}>
-                <span style={{ fontSize: 17, fontWeight: 800, color: selectedCat?.color || '#4A5568' }}>{selectedCat?.label || selectedCat?.name}</span>
+              <div style={{ padding: 14, background: category?.bg || '#F0F2F5' }}>
+                <span style={{ fontSize: 17, fontWeight: 800, color: category?.color || '#4A5568' }}>{getCategoryName()}</span>
               </div>
               {[
                 { label: 'Patient',     value: `${gender === 'M' ? '♂ Homme' : '♀ Femme'} · ${age} ans` },
