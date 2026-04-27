@@ -20,10 +20,10 @@ const CATEGORIES_FALLBACK = [
 ]
 
 const GESTES = [
-  'Scope', 'O2', 'VVP', 'Bilan glycémique', 'DSA',
-  'Aspirateur de mucosités', 'Immobilisation', 'Pansement',
-  'Médicaments', 'PLS', 'MCE', 'Ventilation assistée',
-  'Attelage', 'Minerve', 'Planche', 'Matelas coquille',
+  'LVA Simple', 'Canule', 'Compression Abdo', 'Insufflation', 'O₂',
+  'Aspirateur de mucosités', 'PLS', 'DSA',
+  'Point de compression', 'Atelle', 'Couverture isotherme', 'Pansement / Désinfection',
+  'Collier cervical', 'Matelas coquille',
 ]
 
 const DRIVING_OPTIONS = [
@@ -230,7 +230,7 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Hôpital de destination</div>
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
                   <button onClick={() => setHospitalId(null)} style={{ padding: '8px 14px', borderRadius: 20, border: `1px solid ${hospitalId === null ? '#2E86C1' : '#E8ECF0'}`, background: hospitalId === null ? '#E3F0FA' : '#fff', color: hospitalId === null ? '#2E86C1' : '#4A5568', fontWeight: hospitalId === null ? 700 : 500, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'DM Sans',sans-serif" }}>
-                    Non renseigné
+                    Indisponible
                   </button>
                   {hospitals.map(h => (
                     <button key={h.id} onClick={() => setHospitalId(h.id)} style={{ padding: '8px 14px', borderRadius: 20, border: `1px solid ${hospitalId === h.id ? '#2E86C1' : '#E8ECF0'}`, background: hospitalId === h.id ? '#E3F0FA' : '#fff', color: hospitalId === h.id ? '#2E86C1' : '#4A5568', fontWeight: hospitalId === h.id ? 700 : 500, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'DM Sans',sans-serif" }}>
