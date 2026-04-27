@@ -20,38 +20,97 @@ const CATEGORIES_FALLBACK = [
 ]
 
 const GESTES = [
-  'LVA Simple', 'Canule', 'Compression Abdo', 'Insufflation', 'O₂',
-  'Aspirateur de mucosités', 'PLS', 'DSA',
-  'Point de compression', 'Atelle', 'Couverture isotherme', 'Pansement / Désinfection',
-  'Collier cervical', 'Matelas coquille',
+  'Scope', 'O2', 'VVP', 'Bilan glycémique', 'DSA',
+  'Aspirateur de mucosités', 'Immobilisation', 'Pansement',
+  'Médicaments', 'PLS', 'MCE', 'Ventilation assistée',
+  'Attelage', 'Minerve', 'Planche', 'Matelas coquille',
 ]
 
-const DRIVING_OPTIONS = [
+const DRIVING_OPTIONS_UPH = [
+  { id: 'transport',  label: 'Transport' },
+  { id: 'white_exit', label: 'Sortie Blanche' },
+]
+
+const DRIVING_OPTIONS_COMMERCIAL = [
+  { id: 'outbound',   label: 'Aller' },
+  { id: 'round_trip', label: 'Aller-retour' },
+  { id: 'cancelled',  label: 'Mission annulée' },
+]
+
+const DRIVING_OPTIONS_DEFAULT = [
   { id: 'outbound',   label: 'Aller' },
   { id: 'return',     label: 'Retour' },
   { id: 'round_trip', label: 'Aller-retour' },
   { id: 'none',       label: 'Non concerné' },
 ]
 
+function getDrivingOptions(shiftType) {
+  if (shiftType === 'uph') return DRIVING_OPTIONS_UPH
+  if (shiftType === 'commercial') return DRIVING_OPTIONS_COMMERCIAL
+  return DRIVING_OPTIONS_DEFAULT
+}
+
+function isTransportEffectif(driving, shiftType) {
+  if (!driving) return false
+  if (shiftType === 'uph') return driving === 'transport'
+  if (shiftType === 'commercial') return driving === 'outbound' || driving === 'round_trip'
+  return driving !== 'none'
+}
+
 const TOTAL_STEPS = 6
 const STEP_LABELS = ['Catégorie', 'Patient', 'Constantes', 'Gestes', 'Transport', 'Récap']
 
-const IcoCheck = ({ color = '#fff', size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+const IcoCheck  = ({ color = '#fff', size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+const IcoWheel  = ({ color = '#4A5568', size = 28 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/><line x1="2" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="22" y2="12"/></svg>
+const IcoPerson = ({ color = '#4A5568', size = 28 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 
-export default function NouvelleIntervention({ visible, onClose, shiftId, onSuccess }) {
+function DriverRoleSelector({ label, value, onChange }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 10 }}>
+        {[
+          { v: 'me',      Icon: IcoWheel,  label: 'Moi'        },
+          { v: 'partner', Icon: IcoPerson, label: 'Mon binôme' },
+        ].map(opt => (
+          <button
+            key={opt.v}
+            onClick={() => onChange(value === opt.v ? null : opt.v)}
+            style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+              padding: '14px 10px', borderRadius: 12,
+              border: `1.5px solid ${value === opt.v ? '#2E86C1' : '#E8ECF0'}`,
+              background: value === opt.v ? '#E3F0FA' : '#fff',
+              cursor: 'pointer', fontFamily: "'DM Sans',sans-serif",
+            }}
+          >
+            <opt.Icon color={value === opt.v ? '#2E86C1' : '#8694A7'} size={26} />
+            <span style={{ fontSize: 13, fontWeight: value === opt.v ? 700 : 500, color: value === opt.v ? '#2E86C1' : '#4A5568' }}>{opt.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function NouvelleIntervention({ visible, onClose, shiftId, shiftType, onSuccess }) {
   const [step, setStep]             = useState(1)
   const [loading, setLoading]       = useState(false)
   const [hospitals, setHospitals]   = useState([])
   const [categories, setCategories] = useState([])
 
-  const [category, setCategory]       = useState(null)
-  const [gender, setGender]           = useState(null)
-  const [age, setAge]                 = useState('')
-  const [constants, setConstants]     = useState({})
-  const [gestures, setGestures]       = useState([])
-  const [driving, setDriving]         = useState('none')
-  const [noTransport, setNoTransport] = useState(false)
-  const [hospitalId, setHospitalId]   = useState(null)
+  const [category, setCategory]               = useState(null)
+  const [gender, setGender]                   = useState(null)
+  const [age, setAge]                         = useState('')
+  const [constants, setConstants]             = useState({})
+  const [gestures, setGestures]               = useState([])
+  const [driving, setDriving]                 = useState(null)
+  const [hospitalId, setHospitalId]           = useState(null)
+  const [driverRole, setDriverRole]           = useState(null) // conducteur transport patient
+  const [driverRoleOutbound, setDriverRoleOutbound] = useState(null) // conducteur trajet aller
+
+  const drivingOptions    = getDrivingOptions(shiftType)
+  const transportEffectif = isTransportEffectif(driving, shiftType)
 
   useEffect(() => {
     if (visible) {
@@ -59,13 +118,14 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
       api.get('/intervention-categories')
         .then(data => setCategories(data.length > 0 ? data : CATEGORIES_FALLBACK))
         .catch(() => setCategories(CATEGORIES_FALLBACK))
+      setDriving(null)
     }
   }, [visible])
 
   const reset = () => {
     setStep(1); setCategory(null); setGender(null); setAge('')
-    setConstants({}); setGestures([]); setDriving('none')
-    setNoTransport(false); setHospitalId(null)
+    setConstants({}); setGestures([]); setDriving(null)
+    setHospitalId(null); setDriverRole(null); setDriverRoleOutbound(null)
   }
 
   const handleClose = () => { reset(); onClose() }
@@ -74,13 +134,11 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
   const canNext = () => {
     if (step === 1) return !!category
     if (step === 2) return !!gender && age !== ''
+    if (step === 5) return driving !== null
     return true
   }
 
-  const getCategoryName = () => {
-    if (!category) return ''
-    return category.name || category.label || ''
-  }
+  const getCategoryName = () => category?.name || category?.label || ''
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -88,16 +146,19 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
       const filteredConstants = Object.fromEntries(
         Object.entries(constants).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
       )
+      const noTransport = shiftType === 'uph' ? driving === 'white_exit' : driving === 'cancelled'
       await interventionsApi.store({
-        shift_id:       shiftId,
-        category:       getCategoryName(),
-        patient_gender: gender,
-        patient_age:    parseInt(age),
-        constants:      Object.keys(filteredConstants).length > 0 ? filteredConstants : null,
+        shift_id:              shiftId,
+        category:              getCategoryName(),
+        patient_gender:        gender,
+        patient_age:           parseInt(age),
+        constants:             Object.keys(filteredConstants).length > 0 ? filteredConstants : null,
         gestures,
         driving,
-        no_transport:   noTransport,
-        hospital_id:    hospitalId,
+        no_transport:          noTransport,
+        hospital_id:           hospitalId,
+        driver_role:           driverRole,
+        driver_role_outbound:  driverRoleOutbound,
       })
       reset(); onSuccess(); onClose()
     } catch (e) {
@@ -210,33 +271,57 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
         {step === 5 && (
           <div>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#0A1E3D', marginBottom: 4 }}>Transport</div>
-            <div style={{ fontSize: 12, color: '#8694A7', marginBottom: 16 }}>Informations sur le transport du patient</div>
+            <div style={{ fontSize: 12, color: '#8694A7', marginBottom: 16 }}>
+              {shiftType === 'uph' ? 'Garde UPH' : shiftType === 'commercial' ? 'Garde Commercial' : 'Transport du patient'}
+            </div>
+
+            {/* Qui conduit pour aller chercher le patient ? */}
+            <DriverRoleSelector
+              label="Qui conduit pour aller chercher le patient ?"
+              value={driverRoleOutbound}
+              onChange={setDriverRoleOutbound}
+            />
+            <div style={{ fontSize: 11, color: '#B0BFCC', marginTop: -10, marginBottom: 18, fontStyle: 'italic' }}>
+              Optionnel — utile en cas de PV
+            </div>
+
+            {/* Type de trajet */}
             <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Type de trajet</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-              {DRIVING_OPTIONS.map(opt => (
-                <button key={opt.id} onClick={() => setDriving(opt.id)} style={{ padding: '13px 14px', borderRadius: 10, border: `1.5px solid ${driving === opt.id ? '#2E86C1' : '#E8ECF0'}`, background: driving === opt.id ? '#E3F0FA' : '#fff', color: driving === opt.id ? '#2E86C1' : '#4A5568', fontWeight: driving === opt.id ? 700 : 500, fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: "'DM Sans',sans-serif" }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {drivingOptions.map(opt => (
+                <button key={opt.id} onClick={() => setDriving(opt.id)} style={{ padding: '14px', borderRadius: 10, border: `1.5px solid ${driving === opt.id ? '#2E86C1' : '#E8ECF0'}`, background: driving === opt.id ? '#E3F0FA' : '#fff', color: driving === opt.id ? '#2E86C1' : '#4A5568', fontWeight: driving === opt.id ? 700 : 500, fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: "'DM Sans',sans-serif" }}>
                   {opt.label}
                 </button>
               ))}
             </div>
-            <button onClick={() => setNoTransport(!noTransport)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', borderRadius: 10, border: `1.5px solid ${noTransport ? '#D4860B' : '#E8ECF0'}`, background: noTransport ? '#FFFBEB' : '#fff', width: '100%', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", marginBottom: 14 }}>
-              <div style={{ width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${noTransport ? '#2E86C1' : '#D1D8E0'}`, background: noTransport ? '#2E86C1' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {noTransport && <IcoCheck />}
-              </div>
-              <span style={{ fontSize: 13, color: '#4A5568', fontWeight: 500 }}>Pas de transport (laissé sur place)</span>
-            </button>
-            {!noTransport && hospitals.length > 0 && (
-              <>
+
+            {/* Hôpital si transport effectif */}
+            {transportEffectif && hospitals.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Hôpital de destination</div>
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
                   <button onClick={() => setHospitalId(null)} style={{ padding: '8px 14px', borderRadius: 20, border: `1px solid ${hospitalId === null ? '#2E86C1' : '#E8ECF0'}`, background: hospitalId === null ? '#E3F0FA' : '#fff', color: hospitalId === null ? '#2E86C1' : '#4A5568', fontWeight: hospitalId === null ? 700 : 500, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'DM Sans',sans-serif" }}>
-                    Indisponible
+                    Non renseigné
                   </button>
                   {hospitals.map(h => (
                     <button key={h.id} onClick={() => setHospitalId(h.id)} style={{ padding: '8px 14px', borderRadius: 20, border: `1px solid ${hospitalId === h.id ? '#2E86C1' : '#E8ECF0'}`, background: hospitalId === h.id ? '#E3F0FA' : '#fff', color: hospitalId === h.id ? '#2E86C1' : '#4A5568', fontWeight: hospitalId === h.id ? 700 : 500, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'DM Sans',sans-serif" }}>
                       {h.name}
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Qui conduit pour le transport du patient ? */}
+            {transportEffectif && (
+              <>
+                <DriverRoleSelector
+                  label="Qui conduit pour le transport du patient ?"
+                  value={driverRole}
+                  onChange={setDriverRole}
+                />
+                <div style={{ fontSize: 11, color: '#B0BFCC', marginTop: -10, fontStyle: 'italic' }}>
+                  Optionnel — utile en cas de PV
                 </div>
               </>
             )}
@@ -254,10 +339,12 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
                 <span style={{ fontSize: 17, fontWeight: 800, color: category?.color || '#4A5568' }}>{getCategoryName()}</span>
               </div>
               {[
-                { label: 'Patient',     value: `${gender === 'M' ? '♂ Homme' : '♀ Femme'} · ${age} ans` },
-                { label: 'Transport',   value: DRIVING_OPTIONS.find(d => d.id === driving)?.label },
-                { label: 'Destination', value: noTransport ? 'Laissé sur place' : hospitals.find(h => h.id === hospitalId)?.name || 'Non renseigné' },
-                { label: 'Gestes',      value: gestures.length > 0 ? gestures.join(', ') : 'Aucun' },
+                { label: 'Patient',           value: `${gender === 'M' ? '♂ Homme' : '♀ Femme'} · ${age} ans` },
+                { label: 'Transport',         value: drivingOptions.find(d => d.id === driving)?.label || '—' },
+                { label: 'Destination',       value: transportEffectif ? (hospitals.find(h => h.id === hospitalId)?.name || 'Non renseigné') : '—' },
+                { label: 'Conduite aller',    value: driverRoleOutbound === 'me' ? 'Moi' : driverRoleOutbound === 'partner' ? 'Mon binôme' : 'Non renseigné' },
+                { label: 'Conduite transport',value: driverRole === 'me' ? 'Moi' : driverRole === 'partner' ? 'Mon binôme' : 'Non renseigné' },
+                { label: 'Gestes',            value: gestures.length > 0 ? gestures.join(', ') : 'Aucun' },
               ].map((row, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderTop: '1px solid #F0F2F5', gap: 12 }}>
                   <span style={{ fontSize: 12, color: '#8694A7', flexShrink: 0 }}>{row.label}</span>
@@ -266,9 +353,8 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
               ))}
             </div>
 
-            {/* Constantes récap */}
             {Object.keys(constants).filter(k => constants[k] !== '' && constants[k] !== null && constants[k] !== undefined).length > 0 && (
-              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E8ECF0', overflow: 'hidden', marginBottom: 12 }}>
+              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E8ECF0', overflow: 'hidden' }}>
                 <div style={{ padding: '10px 14px', background: '#F7F8FA', borderBottom: '1px solid #E8ECF0' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: '#8694A7', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Constantes vitales</span>
                 </div>
@@ -280,12 +366,8 @@ export default function NouvelleIntervention({ visible, onClose, shiftId, onSucc
                     const colors    = status ? STATUS_COLORS[status] : null
                     return (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', borderTop: i > 0 ? '1px solid #F0F2F5' : 'none', background: colors ? colors.bg : 'transparent' }}>
-                        <span style={{ fontSize: 12, color: colors ? colors.color : '#8694A7', fontWeight: 500 }}>
-                          {constante?.label || key}
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: colors ? colors.color : '#0A1E3D' }}>
-                          {val} {constante?.unit}
-                        </span>
+                        <span style={{ fontSize: 12, color: colors ? colors.color : '#8694A7', fontWeight: 500 }}>{constante?.label || key}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: colors ? colors.color : '#0A1E3D' }}>{val} {constante?.unit}</span>
                       </div>
                     )
                   })

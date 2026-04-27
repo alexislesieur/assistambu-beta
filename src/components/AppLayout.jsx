@@ -20,10 +20,17 @@ const IcoSac = ({ active }) => (
   </svg>
 )
 
+const IcoPlanning = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#2E86C1' : '#B0BFCC'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+)
+
 const NAV = [
-  { path: '/',        label: 'Accueil',    Icon: IcoDashboard },
+  { path: '/',           label: 'Accueil',    Icon: IcoDashboard },
   { path: '/historique', label: 'Historique', Icon: IcoJournal   },
-  { path: '/sac',     label: 'Sac',        Icon: IcoSac       },
+  { path: '/sac',        label: 'Sac',        Icon: IcoSac       },
+  { path: '/planning',   label: 'Planning',   Icon: IcoPlanning  },
 ]
 
 export default function AppLayout({ children }) {

@@ -3,16 +3,18 @@ import AppLayout from './components/AppLayout'
 import DashboardPage from './pages/DashboardPage'
 import HistoriquePage from './pages/HistoriquePage'
 import SacPage from './pages/SacPage'
+import PlanningPage from './pages/PlanningPage'
 
 export default function App() {
   return (
     <BrowserRouter>
       <AppLayout>
         <Routes>
-          <Route path="/"         element={<DashboardPage />} />
-          <Route path="/historique"  element={<HistoriquePage />} />
-          <Route path="/sac"      element={<SacPage />} />
-          <Route path="*"         element={<Navigate to="/" />} />
+          <Route path="/"           element={<DashboardPage />} />
+          <Route path="/historique" element={<HistoriquePage />} />
+          <Route path="/sac"        element={<SacPage />} />
+          <Route path="/planning"   element={<PlanningPage />} />
+          <Route path="*"           element={<Navigate to="/" />} />
         </Routes>
       </AppLayout>
     </BrowserRouter>
